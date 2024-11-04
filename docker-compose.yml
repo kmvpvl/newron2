@@ -1,0 +1,19 @@
+services:
+  server:
+    container_name: server
+    build: ./server
+    restart: always
+    env_file:
+      - path: ./server/.env
+        required: true
+      - path: ./server/.env.development.local
+        required: false
+    volumes:
+      - ./server/data:/usr/src/server/data
+    environment:
+      - PORT=8000
+
+#volumes:
+#  neuron2-data:
+#    name: perceptrons
+    
