@@ -3,7 +3,9 @@ import morgan from "morgan";
 import cors from "cors";
 import { Perceptron } from "./perceptron";
 import { Brain } from "./brain";
+import dotenv from "dotenv";
 
+dotenv.config();
 const PORT = process.env.PORT || 8000;
 
 const application = express();
