@@ -28,12 +28,14 @@ export class Perceptron {
             this.id = randomUUID();
             if (data === undefined) throw new Error(`Can't create new perceptron without data`);
             this.data = data;
+            this.repairW();
             this.savePerceptronData();
         } else {
             this.id = _id;
             const data = this.loadPerceptronData();
             if (data === undefined) throw Error(`Unable load Perceptron '${_id}'`);
             this.data = data;
+            if (this.repairW()) this.savePerceptronData();
         }
         this.AValuesCache = new Array(this.data.ANames.length).fill(0);
         this.RSynapses = new Array();
@@ -60,7 +62,9 @@ export class Perceptron {
         }
     }
     onSChanged(SNumber: number, value: number) {
-
+        this.SValuesCache[SNumber] = value;
+        console.log(`S element # ${SNumber} of perceptron '${this.data.name}' changed. New value is: ${value}`);
+        this.data.ANames.forEach(aname=> this.calcA(aname));
     }
     connectSSynapse(SNumber: number, ev: Synapse) {
         ev.on('change', this.onSChanged.bind(this, SNumber));
@@ -74,7 +78,9 @@ export class Perceptron {
             const idx = this.data.ANames.findIndex(v=>v === AName);
             if (idx === -1) throw Error(`A element named '${AName}' not found`);
             return idx;
-        } else return AName;
+        } else {
+            return AName;
+        }
     }
 
     getSynapse(AName: string | number): Synapse {
@@ -84,7 +90,7 @@ export class Perceptron {
     private learnAtom(AName: string | number, rightValue: number): number { // return percent of goal achive
         const Aindex = this.getAIndex(AName);
         this.data.learnCount[Aindex]++;
-        const curRes = this.calcA(Aindex);
+        const curRes = this.calcA(AName);
         const v = [1, ...this.SValuesCache];
         const diff = rightValue - curRes;
         for (let i = 0; i < this.data.SCount + 1; i++){
@@ -99,8 +105,10 @@ export class Perceptron {
         const maxM = learnCount === undefined?10000:learnCount;
         let m = 0; // counter is a fuse to infinite cycle
         while (m++ < maxM) {
-            if (Math.abs(this.learnAtom(Aindex, rightValue)) < uptoPercent) break;
+            if (Math.abs(this.learnAtom(AName, rightValue)) < uptoPercent) break;
         } 
+        console.log(`A element '${AName}' of perceptron '${this.json.name}' learned: W = '${this.data.W[Aindex]}'; count = ${this.data.learnCount[Aindex]}`);
+        this.savePerceptronData();
         return this.data.learnCount[Aindex];
     }
 
@@ -109,8 +117,31 @@ export class Perceptron {
         const v = [1, ...this.SValuesCache];
         const w = this.data.W[x];
         const ret = v.reduce((part, v, i)=> part + v * w[i], 0.0);
+        const needNotify = ret !== this.AValuesCache[x];
         this.AValuesCache[x] = ret;
-        this.getSynapse(x).emit('change', AName, ret);
+        //console.log(`A element '${AName}' of perceptron '${this.json.name}' recalculated: ${ret}`);
+        if (needNotify) this.getSynapse(x).emit('change', AName, ret);
+        return ret;
+    }
+    private repairW(): boolean {
+        let ret = false;
+        if (this.data.W.length !== this.data.ANames.length) {
+            ret = true;
+            this.data.W = [];
+            this.data.learnCount = [];
+            for (let i = 0; i < this.data.ANames.length; i++) {
+                this.data.W.push([]);
+                this.data.learnCount.push(0);
+            };
+        }
+        for (const elA of this.data.W) {
+            if (elA.length !== this.data.SCount + 1) {
+                elA.splice(0, elA.length);
+                for (let i = 0; i < this.data.SCount + 1; i++) elA.push(Math.random());
+                ret = true;
+            }
+        }
+        if (ret) console.log(`W repaired: ${this.data.W}`);
         return ret;
     }
 }

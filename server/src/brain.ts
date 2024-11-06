@@ -18,4 +18,8 @@ export class Brain {
         const neurons = dir_content.filter( file => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}.json$/gm.test(file));
         neurons.forEach(v => this.neurons.push(new Perceptron(v.split(".")[0] as UUID)));
     }
+    getNeuronByName(name: string): Perceptron | undefined {
+        const ret = this.neurons.filter(p=>p.json.name === name);
+        if (ret.length === 1) return ret[0];
+    }
 }
