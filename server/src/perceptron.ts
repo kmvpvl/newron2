@@ -66,9 +66,21 @@ export class Perceptron {
         console.log(`S element # ${SNumber} of perceptron '${this.data.name}' changed. New value is: ${value}`);
         this.data.ANames.forEach(aname=> this.calcA(aname));
     }
+    connectMultiSSynapse(ev: Synapse[]) {
+        ev.forEach((syn, idx)=>syn.on('change', this.onSChanged.bind(this, idx)));        
+    }
     connectSSynapse(SNumber: number, ev: Synapse) {
         ev.on('change', this.onSChanged.bind(this, SNumber));
     }
+
+    static pushMultiSValue(synapses: Synapse[], bits: number) {
+        let mod = bits;
+        synapses.forEach(syn=> {
+            syn.emit('change', mod % 2);
+            mod = mod >> 1;
+        });
+    }
+
     get json(): IPerceptron {
         return this.data;
     }
